@@ -205,8 +205,8 @@ CREATE TABLE challenges (
   UNIQUE(student_id, concept_id)
 
 );
-cosmetics
-CREATE TABLE cosmetics (
+cosmetics_catalog
+CREATE TABLE cosmetics_catalog (
 
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
@@ -232,7 +232,7 @@ CREATE TABLE user_cosmetics (
 
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
 
-  cosmetic_id UUID REFERENCES cosmetics(id) ON DELETE CASCADE,
+  cosmetic_id UUID REFERENCES cosmetics_catalog(id) ON DELETE CASCADE,
 
   unlocked_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -285,6 +285,78 @@ CREATE TABLE activity_log (
   created_at TIMESTAMPTZ DEFAULT NOW()
 
 );
+classes
+CREATE TABLE classes (
+
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+  teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
+
+  name TEXT NOT NULL,
+
+  description TEXT,
+
+  subject TEXT NOT NULL,
+
+  grade_level INTEGER CHECK (grade_level BETWEEN 6 AND 12),
+
+  join_code TEXT UNIQUE NOT NULL, -- Short alphanumeric code students use to enroll
+
+  is_active BOOLEAN DEFAULT TRUE,
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+
+);
+enrollments
+CREATE TABLE enrollments (
+
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+  student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+
+  enrolled_at TIMESTAMPTZ DEFAULT NOW(),
+
+  is_active BOOLEAN DEFAULT TRUE,
+
+  UNIQUE(student_id, class_id)
+
+);
+review_log
+CREATE TABLE review_log (
+
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+  student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+
+  challenge_id UUID REFERENCES challenges(id) ON DELETE CASCADE,
+
+  concept_id UUID REFERENCES concepts(id) ON DELETE CASCADE,
+
+  -- FSRS rating: 1=Again, 2=Hard, 3=Good, 4=Easy
+
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 4),
+
+  points_earned INTEGER NOT NULL DEFAULT 0,
+
+  momentum_tier TEXT NOT NULL,
+
+  momentum_multiplier DECIMAL NOT NULL,
+
+  review_duration_ms INTEGER, -- Time the student spent on this card
+
+  was_bounty BOOLEAN DEFAULT FALSE,
+
+  fsrs_state_before JSONB NOT NULL, -- Full FSRS card state snapshot before review
+
+  fsrs_state_after JSONB NOT NULL,  -- Full FSRS card state snapshot after review
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+
+);
 Indexes
 CREATE INDEX idx_challenges_student_due ON challenges(student_id, due_at);
 
@@ -295,6 +367,16 @@ CREATE INDEX idx_concepts_teacher ON concepts(teacher_id);
 CREATE INDEX idx_bounty_flicks_defender ON bounty_flicks(defender_id, status);
 
 CREATE INDEX idx_activity_log_user ON activity_log(user_id, created_at DESC);
+
+CREATE INDEX idx_classes_teacher ON classes(teacher_id);
+
+CREATE INDEX idx_enrollments_student ON enrollments(student_id, is_active);
+
+CREATE INDEX idx_enrollments_class ON enrollments(class_id);
+
+CREATE INDEX idx_review_log_student ON review_log(student_id, created_at DESC);
+
+CREATE INDEX idx_review_log_challenge ON review_log(challenge_id);
 
 
 🎮 Game Mechanics Implementation
@@ -1001,6 +1083,65 @@ interface SequenceCard {
 
   }>;
 
+}
+
+JSONB content_payload Schemas
+The concepts.content_payload column stores card data as JSONB. Each card type has a strict schema keyed on the card_type enum value.
+
+Recall
+{
+  "type": "recall",
+  "question": "<string, required>",
+  "answer": "<string, required>",
+  "hints": ["<string>"],                  // optional array
+  "media": {                              // optional
+    "type": "<image|audio|video>",
+    "url": "<string>"
+  }
+}
+
+Poll
+{
+  "type": "poll",
+  "question": "<string, required>",
+  "options": [                            // min 2, max 6 items
+    {
+      "id": "<string>",
+      "text": "<string>",
+      "isCorrect": "<boolean>"
+    }
+  ],
+  "explanation": "<string>"              // optional; shown after answer
+}
+
+Hotspot
+{
+  "type": "hotspot",
+  "imageUrl": "<string, required>",
+  "question": "<string, required>",
+  "hotspots": [
+    {
+      "id": "<string>",
+      "x": "<number, 0–100 — percent of image width>",
+      "y": "<number, 0–100 — percent of image height>",
+      "radius": "<number, pixels>",
+      "label": "<string>",               // optional; shown on reveal
+      "isCorrect": "<boolean>"
+    }
+  ]
+}
+
+Sequence
+{
+  "type": "sequence",
+  "question": "<string, required>",
+  "items": [                             // min 2, max 8 items
+    {
+      "id": "<string>",
+      "text": "<string>",
+      "correctPosition": "<number, 1-based>"
+    }
+  ]
 }
 
 
