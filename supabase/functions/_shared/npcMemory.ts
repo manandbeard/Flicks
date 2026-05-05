@@ -19,7 +19,7 @@ export function calculateRetrievability(memoryState: FSRSState, elapsedDays: num
 
   const nextMemoryState = scheduler.next_state(memoryState, normalizedElapsedDays, transitionRating, retrievability);
   const nextIntervalDays = scheduler.next_interval(nextMemoryState.stability, normalizedElapsedDays);
-  const remembers = transitionRating === Rating.Good && nextIntervalDays > 0;
+  const remembers = transitionRating === Rating.Good;
 
   return {
     retrievability,
