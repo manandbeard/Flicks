@@ -15,15 +15,18 @@ export function calculateRetrievability(memoryState: FSRSState, elapsedDays: num
   const normalizedElapsedDays = Math.max(0, Math.floor(elapsedDays));
 
   const retrievability = scheduler.forgetting_curve(normalizedElapsedDays, memoryState.stability);
-  const nextMemoryState = scheduler.next_state(memoryState, normalizedElapsedDays, Rating.Good, retrievability);
-  const nextIntervalDays = scheduler.next_interval(nextMemoryState.stability, normalizedElapsedDays);
-  const remembers = retrievability >= RETRIEVABILITY_THRESHOLD && normalizedElapsedDays < nextIntervalDays;
+  const rememberedState = scheduler.next_state(memoryState, normalizedElapsedDays, Rating.Good, retrievability);
+  const forgottenState = scheduler.next_state(memoryState, normalizedElapsedDays, Rating.Again, retrievability);
+
+  const rememberedIntervalDays = scheduler.next_interval(rememberedState.stability, normalizedElapsedDays);
+  const forgottenIntervalDays = scheduler.next_interval(forgottenState.stability, normalizedElapsedDays);
+  const remembers = retrievability >= RETRIEVABILITY_THRESHOLD && rememberedIntervalDays > forgottenIntervalDays;
 
   return {
     retrievability,
     remembers,
     elapsedDays: normalizedElapsedDays,
-    nextIntervalDays,
-    nextMemoryState,
+    nextIntervalDays: remembers ? rememberedIntervalDays : forgottenIntervalDays,
+    nextMemoryState: remembers ? rememberedState : forgottenState,
   };
 }
