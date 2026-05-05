@@ -113,8 +113,11 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error('OpenAI did not return a summary');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured');
+    }
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { error: updateError } = await supabase
