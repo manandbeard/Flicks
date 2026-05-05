@@ -72,9 +72,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       status: 202,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to handle Stripe webhook event', error);
 
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: 'Invalid webhook request' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
