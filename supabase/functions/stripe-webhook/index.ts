@@ -67,7 +67,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     return new Response(null, {
       status: 202,
-      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
