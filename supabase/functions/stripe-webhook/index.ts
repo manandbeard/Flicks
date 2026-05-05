@@ -19,6 +19,7 @@ function getRequiredEnvVar(name: string): string {
 }
 
 const stripeWebhookSecret = getRequiredEnvVar('STRIPE_WEBHOOK_SECRET');
+const stripeSecretKey = getRequiredEnvVar('STRIPE_SECRET_KEY');
 
 const stripeSync = new StripeSync({
   poolConfig: {
@@ -26,13 +27,13 @@ const stripeSync = new StripeSync({
     max: 5,
     keepAlive: true,
   },
-  stripeSecretKey: getRequiredEnvVar('STRIPE_SECRET_KEY'),
+  stripeSecretKey,
   stripeWebhookSecret,
   backfillRelatedEntities: false,
   autoExpandLists: true,
 });
 
-const stripe = new Stripe(getRequiredEnvVar('STRIPE_SECRET_KEY'));
+const stripe = new Stripe(stripeSecretKey);
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
 Deno.serve(async (req: Request): Promise<Response> => {
