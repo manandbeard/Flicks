@@ -62,7 +62,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
 
     if (SUBSCRIPTION_EVENTS.has(event.type)) {
+      console.info(`Processing Stripe event: ${event.type} (${event.id})`);
       await stripeSync.processEvent(event);
+    } else {
+      console.info(`Ignoring Stripe event: ${event.type} (${event.id})`);
     }
 
     return new Response(null, {
